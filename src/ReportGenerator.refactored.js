@@ -11,22 +11,44 @@ export class ReportGenerator {
   generateReport(reportType, user, items) {
     const isAdmin = user.role === 'ADMIN';
     let report = '';
-    let total = 0;
 
     report += this.generateHeader(reportType, user);
 
-    for (const item of items) {
-      if (this.shouldIncludeItem(user, item)) {
-        if (isAdmin && item.value > 1000) {
-          item.priority = true;
-        }
-        report += this.generateRow(reportType, item, user);
-        total += item.value;
-      }
-    }
+    const { reportBody, total } = this.generateBody(reportType, user, items, isAdmin);
+    report += reportBody;
 
     report += this.generateFooter(reportType, total);
     return report.trim();
+  }
+
+  // --- Geração do corpo do relatório ---
+  generateBody(reportType, user, items, isAdmin) {
+    let reportBody = '';
+    let total = 0;
+
+    for (const item of items) {
+      const result = this.generateItemRow(reportType, user, item, isAdmin);
+      if (result) {
+        reportBody += result.row;
+        total += result.value;
+      }
+    }
+
+    return { reportBody, total };
+  }
+
+  // --- Processa cada item individualmente ---
+  generateItemRow(reportType, user, item, isAdmin) {
+    if (!this.shouldIncludeItem(user, item)) return null;
+
+    if (isAdmin && item.value > 1000) {
+      item.priority = true;
+    }
+
+    return {
+      row: this.generateRow(reportType, item, user),
+      value: item.value,
+    };
   }
 
   // --- Helpers ---
